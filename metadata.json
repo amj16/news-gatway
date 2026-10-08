@@ -1,0 +1,6 @@
+{
+  "name": "RadarNews",
+  "description": "سامانه هوشمند پایش، خوشه‌بندی، خلاصه سازی ۵ بخشی و رصد اخبار بر اساس Story/Mention/Evidence",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
