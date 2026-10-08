@@ -10,31 +10,12 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v4
-
-      - name: Extract zip files if present
-        run: |
-          shopt -s nullglob
-          for f in *.zip; do
-            echo "Unzipping $f..."
-            unzip -o "$f"
-          done
-
-      - name: Find Project Directory containing gradlew
-        id: find_gradle
-        run: |
-          GRADLEW_PATH=$(find . -name "gradlew" | head -n 1)
-          if [ -z "$GRADLEW_PATH" ]; then
-            echo "ERROR: gradlew not found!"
-            exit 1
-          fi
-          PROJECT_DIR=$(dirname "$GRADLEW_PATH")
-          echo "project_dir=$PROJECT_DIR" >> $GITHUB_OUTPUT
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
       - name: Create dummy .env file
         run: |
-          CDIR="${{ steps.find_gradle.outputs.project_dir }}"
-          echo "GEMINI_API_KEY=MY_GEMINI_API_KEY" > "$CDIR/.env"
+          echo "GEMINI_API_KEY=MY_GEMINI_API_KEY" > .env
 
       - name: Set up JDK 17
         uses: actions/setup-java@v4
@@ -43,17 +24,13 @@ jobs:
           distribution: 'temurin'
 
       - name: Grant execute permission for gradlew
-        run: |
-          cd "${{ steps.find_gradle.outputs.project_dir }}"
-          chmod +x gradlew
+        run: chmod +x gradlew
 
       - name: Build Debug APK
-        run: |
-          cd "${{ steps.find_gradle.outputs.project_dir }}"
-          ./gradlew assembleDebug --no-daemon --stacktrace
+        run: ./gradlew assembleDebug --no-daemon --stacktrace
 
       - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
         with:
           name: RadarNews-APK
-          path: "**/app/build/outputs/apk/debug/*.apk"
+          path: app/build/outputs/apk/debug/app-debug.apk
