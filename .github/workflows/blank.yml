@@ -12,16 +12,26 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Extract zip files and move content
+      - name: Extract all zip files if present
         run: |
-          if ls *.zip 1> /dev/null 2>&1; then
-            unzip -o *.zip
-            # Move extracted subfolder content if gradlew is inside a subfolder
-            EXTRACTED_DIR=$(find . -maxdepth 2 -name "gradlew" -exec dirname {} \;)
-            if [ "$EXTRACTED_DIR" != "." ] && [ -n "$EXTRACTED_DIR" ]; then
-              cp -r $EXTRACTED_DIR/* .
-            fi
+          shopt -s nullglob
+          for f in *.zip; do
+            echo "Unzipping $f..."
+            unzip -o "$f"
+          done
+
+      - name: Find Project Directory containing gradlew
+        id: find_gradle
+        run: |
+          GRADLEW_PATH=$(find . -name "gradlew" | head -n 1)
+          if [ -z "$GRADLEW_PATH" ]; then
+            echo "ERROR: gradlew not found anywhere!"
+            exit 1
           fi
+          PROJECT_DIR=$(dirname "$GRADLEW_PATH")
+          echo "Found gradlew at $GRADLEW_PATH"
+          echo "Project directory is $PROJECT_DIR"
+          echo "project_dir=$PROJECT_DIR" >> $GITHUB_OUTPUT
 
       - name: Set up JDK 17
         uses: actions/setup-java@v4
@@ -29,14 +39,18 @@ jobs:
           java-version: '17'
           distribution: 'temurin'
 
-      - name: Make gradlew executable
-        run: chmod +x gradlew
+      - name: Grant execute permission for gradlew
+        run: |
+          cd "${{ steps.find_gradle.outputs.project_dir }}"
+          chmod +x gradlew
 
       - name: Build Debug APK
-        run: ./gradlew assembleDebug --no-daemon
+        run: |
+          cd "${{ steps.find_gradle.outputs.project_dir }}"
+          ./gradlew assembleDebug --no-daemon
 
       - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
         with:
           name: RadarNews-APK
-          path: app/build/outputs/apk/debug/app-debug.apk
+          path: "**/app/build/outputs/apk/debug/*.apk"
